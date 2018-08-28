@@ -29,6 +29,8 @@ import RepresentationChooser, {
   IRequest,
 } from "./representation_chooser";
 
+import { ISmoothnessInfos } from "../buffer/get_smoothness_infos";
+
 interface IMetricValue {
   duration: number;
   size: number;
@@ -226,12 +228,14 @@ export default class ABRManager {
   public get$(
     type : IBufferType,
     clock$: Observable<IABRClockTick>,
-    representations: Representation[] = []
+    representations: Representation[] = [],
+    smoothnessInfos?: Observable<ISmoothnessInfos>
   ) : Observable<{
     bitrate: undefined|number;
     representation: Representation|null;
   }> {
-    return this._lazilyCreateChooser(type).get$(clock$, representations);
+    return this._lazilyCreateChooser(type).get$(
+      clock$, representations, smoothnessInfos);
   }
 
   /**

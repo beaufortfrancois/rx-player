@@ -67,6 +67,8 @@ import {
   IRepresentationBufferEvent,
 } from "./types";
 
+import getSmoothnessInfos from "./get_smoothness_infos";
+
 export interface IAdaptationBufferClockTick extends IRepresentationBufferClockTick {
   isLive : boolean;
   speed : number;
@@ -101,10 +103,12 @@ export default function AdaptationBuffer<T>(
   segmentFetcher : IPrioritizedSegmentFetcher<T>,
   wantedBufferAhead$ : Observable<number>,
   content : { manifest : Manifest; period : Period; adaptation : Adaptation },
-  abrManager : ABRManager
+  abrManager : ABRManager,
+  videoElement : HTMLMediaElement
 ) : Observable<IAdaptationBufferEvent<T>> {
   const { manifest, period, adaptation } = content;
-  const abr$ = getABRForAdaptation(adaptation, abrManager, clock$)
+  const abr$ = getABRForAdaptation(
+    adaptation, abrManager, clock$, segmentBookkeeper, videoElement)
     .pipe(shareReplay());
 
   /**
@@ -212,7 +216,9 @@ export default function AdaptationBuffer<T>(
 function getABRForAdaptation(
   adaptation : Adaptation,
   abrManager : ABRManager,
-  abrBaseClock$ : Observable<IAdaptationBufferClockTick>
+  abrBaseClock$ : Observable<IAdaptationBufferClockTick>,
+  segmentBookkeeper : SegmentBookkeeper,
+  videoElement : HTMLMediaElement
 ) : Observable<{
   bitrate: undefined|number;
   representation: Representation|null;
@@ -234,7 +240,16 @@ function getABRForAdaptation(
       return objectAssign({ bitrate }, tick);
     }));
 
-  return abrManager.get$(adaptation.type, abrClock$, representations).pipe(
+  let smoothnessInfos;
+
+  if (videoElement instanceof HTMLVideoElement) {
+    smoothnessInfos = adaptation.type === "video" ?
+      getSmoothnessInfos(segmentBookkeeper, videoElement) :
+      undefined;
+  }
+
+  return abrManager.get$(
+    adaptation.type, abrClock$, representations, smoothnessInfos).pipe(
     tap(({ representation }) => {
       currentRepresentation = representation;
     }));
