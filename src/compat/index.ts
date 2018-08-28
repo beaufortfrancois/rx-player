@@ -380,6 +380,35 @@ function play$(mediaElement : HTMLMediaElement) : Observable<void> {
   );
 }
 
+/**
+ * Get informations about playback frame counts.
+ * HTMLVideoElement API is supported in Firefox >= 25.
+ *
+ * @param {HTMLVideoElement} videoElement
+ */
+function getVideoPlaybackQuality(videoElement: HTMLVideoElement): IVideoPlaybackQuality {
+  if (videoElement.getVideoPlaybackQuality) {
+    return videoElement.getVideoPlaybackQuality();
+  }
+  else if (
+    videoElement.webkitDroppedFrameCount &&
+    videoElement.webkitDecodedFrameCount
+  ) {
+    return {
+      droppedVideoFrames: videoElement.webkitDroppedFrameCount,
+      totalVideoFrames: videoElement.webkitDroppedFrameCount
+        + videoElement.webkitDecodedFrameCount,
+      creationTime: Date.now(),
+    };
+  } else {
+    return {
+      droppedVideoFrames: 0,
+      totalVideoFrames: 0,
+      creationTime: Date.now(),
+    };
+  }
+}
+
 export {
   play$,
   getInitData,
@@ -410,4 +439,5 @@ export {
   shouldRenewMediaKeys,
   shouldUnsetMediaKeys,
   onSourceOpen$,
+  getVideoPlaybackQuality
 };
